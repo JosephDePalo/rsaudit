@@ -123,6 +123,20 @@ impl Scanner {
         Ok(db)
     }
 
+    pub async fn async_run_checks(
+        self: &Self,
+        session: mlua::AnyUserData,
+    ) -> mlua::Result<Database> {
+        let checks = { self.registry.lock().unwrap().clone() };
+        let mut db: Database = vec![];
+        for check in checks.iter() {
+            let (status, msg): (bool, String) =
+                check.run.call_async((session.clone(),)).await?;
+            db.push(CheckResult::from_check(check, status, msg));
+        }
+        Ok(db)
+    }
+
     pub fn exclude_checks(self: &Self, ids: &Vec<String>) {
         let mut registry_guard = self.registry.lock().unwrap();
         registry_guard.retain(|c| !ids.contains(&c.id));

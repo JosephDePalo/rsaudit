@@ -1,42 +1,42 @@
-use std::io::Read;
-use std::net::TcpStream;
+use std::sync::Arc;
 
+use async_ssh2_tokio::{AuthMethod, Client};
 use mlua::{UserData, UserDataMethods};
-use ssh2::Session;
 
-#[derive(Clone)]
 pub struct SSHSession {
-    sess: Session,
+    client: Arc<Client>,
 }
 
 impl SSHSession {
-    pub fn new(addr: &str, username: &str, password: &str) -> Self {
-        let tcp = TcpStream::connect(addr).unwrap();
-        let mut sess = Session::new().unwrap();
-        sess.set_tcp_stream(tcp);
-        sess.handshake().unwrap();
+    pub async fn new(addr: &str, username: &str, password: &str) -> Self {
+        let authn_method = AuthMethod::with_password(password);
+        let client = Client::connect(
+            addr,
+            username,
+            authn_method,
+            async_ssh2_tokio::ServerCheckMethod::NoCheck,
+        )
+        .await
+        .unwrap();
 
-        sess.userauth_password(username, password).unwrap();
-        assert!(sess.authenticated());
-
-        SSHSession { sess }
+        Self {
+            client: Arc::new(client),
+        }
     }
 
-    pub fn run_cmd(self: &Self, cmd: &str) -> String {
-        let mut channel = self.sess.channel_session().unwrap();
-        channel.exec(cmd).unwrap();
-        let mut s = String::new();
-        channel.read_to_string(&mut s).unwrap();
-        channel.wait_close().unwrap();
-        String::from(s.trim())
+    pub async fn run_cmd(self: &Self, cmd: &str) -> String {
+        self.client.execute(cmd).await.unwrap().stdout
     }
 }
 
 impl UserData for SSHSession {
     fn add_methods<M: UserDataMethods<Self>>(methods: &mut M) {
         // Expose a 'run_command' method to Lua
-        methods.add_method("run_cmd", |_, ssh_session, command: String| {
-            Ok(ssh_session.run_cmd(command.as_str()))
-        });
+        methods.add_async_method(
+            "run_cmd",
+            |_, ssh_session, command: String| async move {
+                Ok(ssh_session.run_cmd(command.as_str()).await)
+            },
+        );
     }
 }
