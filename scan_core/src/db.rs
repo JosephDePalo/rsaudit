@@ -44,7 +44,7 @@ impl Db {
         Ok(result)
     }
 
-    pub async fn get_device(self: &Self, id: i32) -> Result<Option<Device>> {
+    pub async fn get_device(self: &Self, id: i64) -> Result<Option<Device>> {
         let device =
             sqlx::query_as!(Device, r"SELECT * FROM devices WHERE id = $1", id)
                 .fetch_optional(&self.pool)
@@ -52,7 +52,7 @@ impl Db {
         Ok(device)
     }
 
-    pub async fn remove_device(self: &Self, id: i32) -> Result<u64> {
+    pub async fn remove_device(self: &Self, id: i64) -> Result<u64> {
         let result = sqlx::query!(r"DELETE FROM devices WHERE id = $1", id)
             .execute(&self.pool)
             .await?;
