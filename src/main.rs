@@ -4,8 +4,8 @@ use std::{fs, io};
 
 use anyhow::Result;
 use clap::Parser;
+use rsaudit::checks::{CheckResult, CheckRunner};
 use rsaudit::config::{Args, Config};
-use rsaudit::scanner::{CheckResult, Database, Scanner};
 use rsaudit::sshsession::SSHSession;
 use std::collections::HashMap;
 use tokio::task::JoinHandle;
@@ -22,7 +22,7 @@ async fn main() -> Result<()> {
     };
 
     let config: Config = toml::from_str(&contents)?;
-    let scanner = Arc::new(Scanner::new()?);
+    let scanner = Arc::new(CheckRunner::new()?);
     for file_path in &config.settings.check_files {
         scanner.load_file(file_path)?;
     }
@@ -46,7 +46,7 @@ async fn main() -> Result<()> {
             });
         handles.push(handle);
     }
-    let mut db: HashMap<String, Database> = HashMap::new();
+    let mut db: HashMap<String, Vec<CheckResult>> = HashMap::new();
     for handle in handles {
         if let Ok(handle) = handle.await {
             match handle {
