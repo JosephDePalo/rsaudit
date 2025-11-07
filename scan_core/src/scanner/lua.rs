@@ -2,7 +2,7 @@ use anyhow::Result;
 use mlua::{Table, UserData, UserDataMethods, prelude::*};
 use regex::Regex;
 
-use crate::checks::{CheckDefinition, CheckRegistry};
+use crate::scanner::checks::{CheckDefinition, CheckRegistry};
 
 pub fn init_lua(registry: &CheckRegistry) -> Result<Lua> {
     let lua = Lua::new();

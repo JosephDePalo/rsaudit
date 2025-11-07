@@ -1,7 +1,7 @@
 use clap::Parser;
 use serde::Deserialize;
 
-use scan_core::ssh::Device;
+use scan_core::scanner::ssh::Device;
 
 #[derive(Debug, Deserialize)]
 pub struct Config {

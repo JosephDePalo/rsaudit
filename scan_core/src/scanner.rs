@@ -1,3 +1,7 @@
+pub mod checks;
+pub mod lua;
+pub mod ssh;
+
 use std::{
     collections::HashMap,
     sync::{Arc, Mutex},
@@ -6,7 +10,7 @@ use std::{
 use anyhow::{Context, Result};
 use tokio::task::JoinHandle;
 
-use crate::{
+use crate::scanner::{
     checks::{CheckResult, CheckRunner},
     ssh::{Device, SSHSession},
 };

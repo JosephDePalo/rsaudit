@@ -5,7 +5,7 @@ use anyhow::{Context, Result};
 use mlua::{Function, Lua};
 use serde::{Deserialize, Serialize};
 
-use crate::lua::init_lua;
+use crate::scanner::lua::init_lua;
 
 #[derive(Debug, Clone)]
 pub struct CheckDefinition {
