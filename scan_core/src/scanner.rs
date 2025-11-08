@@ -4,7 +4,7 @@ pub mod ssh;
 use std::sync::Arc;
 
 use anyhow::Result;
-use mlua::{Lua, LuaSerdeExt, Value};
+use mlua::{Function, Lua, LuaSerdeExt, Value};
 use serde::Deserialize;
 use tokio::task::JoinHandle;
 
@@ -57,22 +57,45 @@ impl Scanner {
 
                     lua.globals().set("conn", session)?;
 
+                    let scan =
+                        db.add_scan(device.id, ScanStatus::Running).await?;
                     for rule in rules.iter() {
-                        let scan =
-                            db.add_scan(device.id, ScanStatus::Running).await?;
-                        let table: Value =
-                            lua.load(&rule.script_body).eval_async().await?;
-                        let result: CheckResult = lua.from_value(table)?;
-                        println!("Result: {:?}", &result);
+                        let rule_result = async {
+                            lua.load(&rule.script_body).exec()?;
+                            let func: Function =
+                                lua.globals().get("run_check")?;
+                            let table: Value = func.call_async(()).await?;
+                            let result: CheckResult = lua.from_value(table)?;
 
-                        db.add_scan_result(
-                            scan.id,
-                            rule.id.clone(),
-                            result.status,
-                            result.details,
-                        )
-                        .await?;
+                            db.add_scan_result(
+                                scan.id,
+                                rule.id.clone(),
+                                result.status.clone(),
+                                result.details.clone(),
+                            )
+                            .await?;
+                            println!("Result: {:?}", &result);
+                            anyhow::Ok(())
+                        }
+                        .await;
+                        match rule_result {
+                            Ok(_) => (),
+                            Err(e) => {
+                                db.add_scan_result(
+                                    scan.id,
+                                    rule.id.clone(),
+                                    CheckStatus::Error,
+                                    Some(format!(
+                                        "Rule execution failed: {}",
+                                        e
+                                    )),
+                                )
+                                .await?;
+                            }
+                        };
                     }
+                    db.update_scan_status(scan.id, ScanStatus::Completed)
+                        .await?;
                     Ok(())
                 });
             handles.push(handle);
