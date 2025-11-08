@@ -1,27 +1,18 @@
-pub mod checks;
 pub mod lua;
 pub mod ssh;
 
-use std::{
-    collections::HashMap,
-    sync::{Arc, Mutex},
-};
+use std::sync::Arc;
 
-use anyhow::{Context, Result};
-use mlua::{AnyUserData, Lua, LuaSerdeExt, Table, Value};
+use anyhow::Result;
+use mlua::{Lua, LuaSerdeExt, Value};
 use serde::Deserialize;
 use tokio::task::JoinHandle;
 
+use crate::{db::Db, scanner::lua::init_lua};
 use crate::{
     db::models::{CheckStatus, ScanStatus},
     scanner::ssh::SSHSession,
 };
-use crate::{
-    db::{Db, models::Device},
-    scanner::lua::init_lua,
-};
-
-type ScanResult = HashMap<String, Vec<CheckResult>>;
 
 #[derive(Debug, Deserialize)]
 struct CheckResult {
@@ -93,50 +84,4 @@ impl Scanner {
 
         Ok(())
     }
-    // pub async fn scan_devices(
-    //     self: &mut Self,
-    //     devices: Vec<Device>,
-    // ) -> Result<ScanResult> {
-    //     let mut handles = Vec::new();
-    //     let runner = Arc::new(
-    //         self.runner
-    //             .lock()
-    //             .map_err(|e| anyhow::anyhow!("Failed to acquire mutex: {}", e))?
-    //             .clone(),
-    //     );
-    //
-    //     for device in devices {
-    //         let runner = runner.clone();
-    //         let handle: JoinHandle<Result<(String, Vec<CheckResult>)>> =
-    //             tokio::task::spawn(async move {
-    //                 let session = SSHSession::new(
-    //                     device.address.as_str(),
-    //                     device.username.as_str(),
-    //                     device.password.as_str(),
-    //                 )
-    //                 .await?;
-    //                 let session_userdata =
-    //                     runner.lua.create_userdata(session)?;
-    //                 Ok((
-    //                     device.address,
-    //                     runner.run_checks(session_userdata).await?,
-    //                 ))
-    //             });
-    //         handles.push(handle);
-    //     }
-    //
-    //     let mut db: ScanResult = HashMap::new();
-    //     for handle in handles {
-    //         if let Ok(handle) = handle.await {
-    //             match handle {
-    //                 Ok((address, result)) => {
-    //                     db.insert(address, result);
-    //                 }
-    //                 Err(e) => eprintln!("An error occurred: {}", e),
-    //             }
-    //         }
-    //     }
-    //
-    //     Ok(db)
-    // }
 }
