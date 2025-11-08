@@ -11,4 +11,13 @@ serde = { workspace = true }
 regex = "1.12.2"
 mlua = { version = "0.11.4", features = ["lua54", "async", "send", "serde"] }
 async-ssh2-tokio = "0.11.0"
-sqlx = { version = "0.7", features = ["postgres", "runtime-tokio-native-tls", "macros"] }
+sqlx = { version = "0.8.6", features = ["postgres", "runtime-tokio-native-tls", "macros"] }
+dotenvy = "0.15.7"
+
+[[bin]]
+name = "seeder"
+path = "src/bin/seeder.rs"
+
+[[bin]]
+name = "runner"
+path = "src/bin/runner.rs"
