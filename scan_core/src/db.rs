@@ -1,3 +1,4 @@
+pub mod crypto;
 pub mod models;
 
 use crate::db::models::*;
